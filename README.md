@@ -1,4 +1,7 @@
-# My Repository for 2020 MediaEval Medico - polyp segmentation
+# 2020 MediaEval Medico Challenge: Polyp Segmentation
+
+My Solution
+
 
 
 ## Repository Contents
@@ -22,4 +25,3 @@
 - Data: https://datasets.simula.no/kvasir-seg/
 - Challenge: https://multimediaeval.github.io/editions/2020/tasks/medico/
 - GitHub repository: https://github.com/DebeshJha/2020-MediaEval-Medico-polyp-segmentation
-
