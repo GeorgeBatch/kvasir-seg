@@ -1,4 +1,5 @@
-# My Solution for the 2020 MediaEval Medico Challenge: Polyp Segmentation
+# 2020 MediaEval Medico Challenge: Polyp Segmentation
+# My Solution
 
 
 ## Contents of this repository
