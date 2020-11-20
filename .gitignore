@@ -6,10 +6,15 @@
 *.swp
 .ipynb_checkpoints/
 
+# exclude all data files (heavy) except for the README.md files
+data/*
+!data/README.md
 
-checkpoints/
-datasets/
+# exclude all checkpoints files (heavy) except for the README.md files
+checkpoints/*
+!checkpoints/README.md
 
+# exclude predictions folders
 predictions_test/
 predictions_val/
 
