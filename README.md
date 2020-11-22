@@ -23,6 +23,9 @@ For more Information consult next section (Information and Links).
 - data:
     - Train (starts download, size 46.2 MB): https://datasets.simula.no/kvasir-seg/Kvasir-SEG.zip
     - Test (29.6 MB): https://drive.google.com/file/d/1uP2W2g0iCCS3T6Cf7TPmNdSX4gayOrv2/view?usp=sharing
+    
+- models:
+    - Different architectures. Each in its own script.
 
 - notebooks:
     - All working notebooks: EDA, experiments.
@@ -37,3 +40,7 @@ For more Information consult next section (Information and Links).
 - train-val-split:
     - Copied from the official challenge repository: https://github.com/DebeshJha/2020-MediaEval-Medico-polyp-segmentation/tree/master/kvasir-seg-train-val.
     - Pre-defined train/test split in .txt files (train ids, and validation ids are stored in separate files).
+    
+- utils:
+    - metrics.py: IoU loss and evaluation metrics
+    - dataset.py: custom Dataset class to be used in torch DataLoaders
