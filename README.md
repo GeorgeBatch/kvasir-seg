@@ -28,7 +28,7 @@ For more Information consult next section (Information and Links).
     - All working notebooks: EDA, experiments.
     
 - presentation:
-    - Presentation slides for self-organized mini-conference at the Health Data Science CDT after the completion of the Deep Learning challenge.
+    - Presentation slides for self-organized mini-conference at the Health Data Science CDT after completing the Deep Learning challenge.
     
 - submission
     - Notebook and script with submission code.
