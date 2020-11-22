@@ -35,5 +35,5 @@ For more Information consult next section (Information and Links).
     - Functionality: loads images one by one, makes predictions and records mean number of images/frames processed per second (FPS).
  
 - train-val-split:
-    - Copied from the official challenge repository.
+    - Copied from the official challenge repository: https://github.com/DebeshJha/2020-MediaEval-Medico-polyp-segmentation/tree/master/kvasir-seg-train-val.
     - Pre-defined train/test split in .txt files (train ids, and validation ids are stored in separate files).
