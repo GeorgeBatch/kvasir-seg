@@ -10,10 +10,23 @@ import torchvision.transforms as transforms
 
 import torch
 
+# ----------------------------------------------------------------------------
+# # Set path to test dataset
+
+# to check
+CHECKPOITS_PATH = "../checkpoints"
+TEST_DATASET_PATH = "../data/test/images"
+MASK_PATH = "../predictions_test"
+
+#(Like in the instructions)
+# CHECKPOITS_PATH = ""
+# TEST_DATASET_PATH = "/medico2020"
+# MASK_PATH = "/mask"
+
 
 # ----------------------------------------------------------------------------
 # select device for training, define how we resize
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu") # select device for training, i.e. gpu or cpu
 _size = 256, 256
 resize = transforms.Resize(_size, interpolation=0)
 
@@ -97,19 +110,16 @@ class UNet(torch.nn.Module):
 # Instantiate the model and load weights
 
 model_name = 'UNet_IoULoss_baseline'
+chpt_file_name = "ckpt_" + model_name + ".pth"
 
 # Instantiate the model
 model = UNet(channel_in=3, channel_out=1)
 model = model.to(DEVICE) # load model to DEVICE
 
 # load best weights and put into the evaluation mode
-model.load_state_dict(torch.load('ckpt_UNet_IoULoss_baseline.pth')['net'])
+chpt_file_path  = os.path.join(CHECKPOITS_PATH, chpt_file_name)
+model.load_state_dict(torch.load(chpt_file_path)['net'])
 
-
-# ----------------------------------------------------------------------------
-# Set path to test dataset (Like in the instructions)
-TEST_DATASET_PATH = "/medico2020"
-MASK_PATH = "/mask"
 
 
 # ----------------------------------------------------------------------------
@@ -163,7 +173,7 @@ for name in os.listdir(TEST_DATASET_PATH):
     pred = pred > 0.5
     # remove BATCH => H x W
     pred = pred.squeeze(0)
-    # converto to correct type
+    # convert to correct type
     pred = pred.numpy().astype(np.float32)
     # revert to standard intensities
     pred = pred * 255.0
