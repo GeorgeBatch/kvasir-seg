@@ -109,6 +109,7 @@ def recall_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
     # tpfn = tp + fn
     # recall = tp / (tp + fn) = intersection / tpfn
 
+
     # BATCH x H x W
     assert len(outputs.shape) == 3
     assert len(labels.shape) == 3
@@ -126,6 +127,43 @@ def recall_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
     recall = (intersection + SMOOTH) / (tpfn + SMOOTH)     # We smooth our devision to avoid 0/0
 
     return recall.mean()
+
+
+def fbeta_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor, beta:float):
+    # intersection = tp
+    #
+    # tpfp = tp + fp
+    # precision = tp / (tp + fp) = intersection / tpfp
+    #
+    # tpfn = tp + fn
+    # recall = tp / (tp + fn) = intersection / tpfn
+    #
+    # fbeta = (1 + beta^2) * (precision * recall) / ((beta^2 * precision) + recall)
+    # https://www.quora.com/What-is-the-F2-score-in-machine-learning
+
+    # BATCH x H x W
+    assert len(outputs.shape) == 3
+    assert len(labels.shape) == 3
+
+    # comment out if your model contains a sigmoid or equivalent activation layer
+    outputs = torch.sigmoid(outputs)
+
+    # thresholding since that's how we will make predictions on new imputs
+    outputs = outputs > 0.5
+    labels = labels > 0.5
+
+    SMOOTH = 1e-8
+    intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
+    
+    tpfn = (outputs).float().sum((1, 2))                   # Will be zero if both are 0
+    recall = (intersection + SMOOTH) / (tpfn + SMOOTH)     # We smooth our devision to avoid 0/0
+    
+    tpfp = (labels).float().sum((1, 2))                    # Will be zero if both are 0
+    precision = (intersection + SMOOTH) / (tpfp + SMOOTH)     # We smooth our devision to avoid 0/0
+    
+    f_beta = (1 + beta ** 2) * (precision * recall) / ((beta **2 * precision) + recall)
+
+    return f_beta.mean()
 
 
 def accuracy_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
