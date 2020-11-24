@@ -99,7 +99,7 @@ def precision_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
     SMOOTH = 1e-8
     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
     tpfp = (labels).float().sum((1, 2))                    # Will be zero if both are 0
-    precision = (2*intersection + SMOOTH) / (tpfp + SMOOTH)     # We smooth our devision to avoid 0/0
+    precision = (intersection + SMOOTH) / (tpfp + SMOOTH)     # We smooth our devision to avoid 0/0
 
     return precision.mean()
 
@@ -123,9 +123,27 @@ def recall_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
     SMOOTH = 1e-8
     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
     tpfn = (outputs).float().sum((1, 2))                   # Will be zero if both are 0
-    recall = (2*intersection + SMOOTH) / (tpfn + SMOOTH)     # We smooth our devision to avoid 0/0
+    recall = (intersection + SMOOTH) / (tpfn + SMOOTH)     # We smooth our devision to avoid 0/0
 
     return recall.mean()
+
+
+def accuracy_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
+
+    # BATCH x H x W
+    assert len(outputs.shape) == 3
+    assert len(labels.shape) == 3
+
+    # comment out if your model contains a sigmoid or equivalent activation layer
+    outputs = torch.sigmoid(outputs)
+
+    # thresholding since that's how we will make predictions on new imputs
+    outputs = outputs > 0.5
+    labels = labels > 0.5
+
+    acc = (outputs == labels).float().mean((1, 2))
+
+    return acc.mean()
 
 
 
