@@ -18,7 +18,7 @@ For more Information consult next section (Information and Links).
 ## Repository Contents
 
 - checkpoints:
-    - Checkpoints for model weights, best epoch indexes, and validation IoU. More information in the README.md inside the folder.
+    - Checkpoints for model weights, best epoch indexes, and validation IoU. More information and the link for download in the README.md inside the folder.
 
 - data:
     - Train (starts download, size 46.2 MB): https://datasets.simula.no/kvasir-seg/Kvasir-SEG.zip
