@@ -18,4 +18,6 @@ checkpoints/*
 predictions_test/
 predictions_val/
 
-
+# ignore google slides files and video from presentation
+*.gslides
+*.mp4
