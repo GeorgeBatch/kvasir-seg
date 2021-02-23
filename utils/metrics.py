@@ -233,7 +233,8 @@ class IoUBCELoss(nn.Module):
 
         IoU = - (intersection + smooth)/(union + smooth)
 
-        BCE = F.binary_cross_entropy(inputs, targets, reduction='mean')
+        # https://pytorch.org/docs/stable/nn.functional.html#binary-cross-entropy
+        BCE = F.binary_cross_entropy(input=inputs, target=targets, reduction='mean')
         IoU_BCE = BCE + IoU
 
         return IoU_BCE
