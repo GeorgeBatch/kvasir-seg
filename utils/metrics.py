@@ -17,7 +17,7 @@ def iou_pytorch_eval(outputs: torch.Tensor, labels: torch.Tensor):
     # You can comment out this line if you are passing tensors of equal shape
     # But if you are passing output from UNet or something it will most probably
     # be with the BATCH x 1 x H x W shape
-    outputs = outputs.squeeze(1).byte()  # BATCH x 1 x H x W => BATCH x H x W
+    outputs = outputs.squeeze(1).byte()  # BATCH x 1 x H x W -> BATCH x H x W
     labels = labels.squeeze(1).byte()
 
 
@@ -99,7 +99,7 @@ def precision_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
     SMOOTH = 1e-8
     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
     tpfp = (labels).float().sum((1, 2))                    # Will be zero if both are 0
-    precision = (intersection + SMOOTH) / (tpfp + SMOOTH)     # We smooth our devision to avoid 0/0
+    precision = (intersection + SMOOTH) / (tpfp + SMOOTH)  # We smooth our devision to avoid 0/0
 
     return precision.mean()
 
@@ -154,13 +154,13 @@ def fbeta_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor, beta:float):
 
     SMOOTH = 1e-8
     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
-    
+
     tpfn = (outputs).float().sum((1, 2))                   # Will be zero if both are 0
     recall = (intersection + SMOOTH) / (tpfn + SMOOTH)     # We smooth our devision to avoid 0/0
-    
+
     tpfp = (labels).float().sum((1, 2))                    # Will be zero if both are 0
-    precision = (intersection + SMOOTH) / (tpfp + SMOOTH)     # We smooth our devision to avoid 0/0
-    
+    precision = (intersection + SMOOTH) / (tpfp + SMOOTH)  # We smooth our devision to avoid 0/0
+
     f_beta = (1 + beta ** 2) * (precision * recall) / ((beta **2 * precision) + recall)
 
     return f_beta.mean()
