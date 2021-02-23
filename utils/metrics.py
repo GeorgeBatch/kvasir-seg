@@ -271,3 +271,38 @@ class mIoULossBinary(nn.Module):
         return mIoU
 
 
+# credits for Multiclass implementation to Kenneth Rithvik (in comments)
+# https://www.kaggle.com/bigironsphere/loss-function-library-keras-pytorch/comments
+class DiceLossMulticlass(nn.Module):
+    def __init__(self, weights=None, size_average=False):
+        super(mIoULoss, self).__init__()
+
+    def forward(self, inputs, targets, smooth=1):
+        # inputs, targets of shapes (BATCH, NUM_CLASSES, H, W)
+
+        if self.weights is not None:
+            assert self.weights.shape == (targets.shape[1], )
+        # make a copy not to change the default weights in the instance of DiceLossMulticlass
+        weights = self.weights.copy()
+
+        #comment out if your model contains a sigmoid or equivalent activation layer
+        inputs = F.sigmoid(inputs)
+
+        # flatten label and prediction images, leave BATCH and NUM_CLASSES
+        # (BATCH, NUM_CLASSES, H, W) -> (BATCH, NUM_CLASSES, H * W)
+        inputs = inputs.view(inputs.shape[0],inputs.shape[1],-1)
+        targets = targets.view(targets.shape[0],targets.shape[1],-1)
+
+        #intersection = (inputs * targets).sum()
+        intersection = (inputs * targets).sum(0).sum(1)
+        #dice = (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)
+        dice = (2.*intersection + smooth)/(inputs.sum(0).sum(1) + targets.sum(0).sum(1) + smooth)
+
+        if (weights is None) and (self.size_average==True):
+            weights = (targets == 1).sum(0).sum(1)
+            weights /= weights.sum() # so they sum up to 1
+
+        if weights is not None:
+            return 1 - (dice*weights).mean()
+        else:
+            return 1 - weights.mean()
