@@ -188,6 +188,10 @@ def accuracy_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
 # -----------------------------------------------------------------------------
 # Credit to: https://www.kaggle.com/bigironsphere/loss-function-library-keras-pytorch
 
+
+# TODO: replace all `size_average` arguments with `reduction`, see PyTorch docs
+#       for any of the loss functions
+
 class IoULoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
         super(IoULoss, self).__init__()
