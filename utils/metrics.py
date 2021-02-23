@@ -17,7 +17,7 @@ def iou_pytorch_eval(outputs: torch.Tensor, labels: torch.Tensor):
     # You can comment out this line if you are passing tensors of equal shape
     # But if you are passing output from UNet or something it will most probably
     # be with the BATCH x 1 x H x W shape
-    outputs = outputs.squeeze(1).byte()  # BATCH x 1 x H x W -> BATCH x H x W
+    outputs = outputs.squeeze(1).byte()  # (BATCH, 1, H, W) -> (BATCH, H, W)
     labels = labels.squeeze(1).byte()
 
 
