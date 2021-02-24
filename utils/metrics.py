@@ -276,33 +276,28 @@ class IoUBCELoss(nn.Module):
 # -----------------------------------------------------------------------------
 
 class mIoULossBinary(nn.Module):
-    def __init__(self, weights=None, size_average=False):
+    def __init__(self, weight=None):
         super(mIoULoss, self).__init__()
 
     def forward(self, inputs, targets, smooth=1):
         # (BATCH, 1, H, W)
         # we care about both classes represented as 0 and 1 on one the masks
 
-        if self.weights is not None:
-            assert self.weights.shape == (targets.shape[1], )
-        # make a copy not to change the default weights in the instance of DiceLossMulticlass
-        weights = self.weights.copy()
-
-        if (weights is None) and (self.size_average==True):
-            weights = np.ones(2)
-            weights[0] = (targets == 0).sum()
-            weights[1] = (targets == 1).sum()
+        if self.weight is not None:
+            assert self.weight.shape == (targets.shape[1], )
+        # make a copy not to change the default weight in the instance of DiceLossMulticlass
+        weight = self.weight.copy()
 
         # invert what is target and what is not
         # 0 -> (-1) * (0 - 1) = 1
         # 1 -> (-1) * (1 - 1) = 0
         targets_inv = (-1) * (targets - 1)
 
-        if weights is None:
+        if weight is None:
             mIoU = (IoULoss(inputs, targets_inv, smooth) + IoULoss(inputs, targets, smooth)) / 2
         else:
-            mIoU = (weights[0] * IoULoss(inputs, targets_inv, smooth) + \
-                    weights[1] * IoULoss(inputs, targets, smooth)) / weights.sum()
+            mIoU = (weight[0] * IoULoss(inputs, targets_inv, smooth) + \
+                    weight[1] * IoULoss(inputs, targets, smooth)) / weight.sum()
 
         return mIoU
 
