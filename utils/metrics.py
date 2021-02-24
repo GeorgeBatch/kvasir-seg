@@ -223,7 +223,7 @@ def accuracy_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
 #       for any of the loss functions
 
 class IoULoss(nn.Module):
-    def __init__(self, weight=None, size_average=True):
+    def __init__(self):
         super(IoULoss, self).__init__()
 
     def forward(self, inputs, targets, smooth=1):
@@ -247,7 +247,7 @@ class IoULoss(nn.Module):
 
 
 class IoUBCELoss(nn.Module):
-    def __init__(self, weight=None, size_average=True):
+    def __init__(self):
         super(IoUBCELoss, self).__init__()
 
     def forward(self, inputs, targets, smooth=1):
