@@ -29,7 +29,37 @@ def iou_pytorch_eval(outputs: torch.Tensor, labels: torch.Tensor):
     return iou.mean()
 
 # -----------------------------------------------------------------------------
-# to be used for validation for trainied models
+# to be used for validation/testing of trainied models
+
+def mean_iou_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
+    # intersection = tp
+    # union = tp + fp + fn
+    # iou = tp / (tp + fp + fn) = intersection / union
+
+    # BATCH x H x W, need because we process images sequentially in a for-loop
+    assert len(outputs.shape) == 3
+    assert len(labels.shape) == 3
+
+    # comment out if your model contains a sigmoid or equivalent activation layer
+    outputs = torch.sigmoid(outputs)
+    SMOOTH = 1e-8
+
+
+    # thresholding since that's how we will make predictions on new imputs (class 0)
+    outputs0 = outputs < 0.5
+    labels0 = labels < 0.5
+    intersection = (outputs0 & labels0).float().sum((1, 2))  # Will be zero if Truth=1 or Prediction=1
+    union = (outputs0 | labels0).float().sum((1, 2))         # Will be zero if both are 1
+    iou0 = (intersection + SMOOTH) / (union + SMOOTH)  # We smooth our devision to avoid 0/0
+
+    # thresholding since that's how we will make predictions on new imputs (class 1)
+    outputs1 = outputs > 0.5
+    labels1 = labels > 0.5
+    intersection = (outputs1 & labels1).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
+    union = (outputs1 | labels1).float().sum((1, 2))         # Will be zero if both are 0
+    iou1 = (intersection + SMOOTH) / (union + SMOOTH)  # We smooth our devision to avoid 0/0
+
+    return ((iou0 + iou1) / 2).mean()
 
 
 def iou_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
