@@ -273,6 +273,7 @@ class IoUBCELoss(nn.Module):
 
         return IoU_BCE
 
+# -----------------------------------------------------------------------------
 
 class mIoULossBinary(nn.Module):
     def __init__(self, weights=None, size_average=False):
