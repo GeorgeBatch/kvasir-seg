@@ -309,16 +309,17 @@ class mIoULossBinary(nn.Module):
 # credits for Multiclass implementation to Kenneth Rithvik (in comments)
 # https://www.kaggle.com/bigironsphere/loss-function-library-keras-pytorch/comments
 class DiceLossMulticlass(nn.Module):
-    def __init__(self, weights=None, size_average=False):
+    def __init__(self, weight=None, reduction='mean'):
         super(mIoULoss, self).__init__()
 
     def forward(self, inputs, targets, smooth=1):
         # inputs, targets of shapes (BATCH, NUM_CLASSES, H, W)
 
-        if self.weights is not None:
-            assert self.weights.shape == (targets.shape[1], )
-        # make a copy not to change the default weights in the instance of DiceLossMulticlass
-        weights = self.weights.copy()
+        # check the size of the weight
+        if self.weight is not None:
+            assert self.weight.shape == (targets.shape[1], )
+        # make a copy not to change the default weight in the instance of DiceLossMulticlass
+        weight = self.weight.copy()
 
         #comment out if your model contains a sigmoid or equivalent activation layer
         inputs = F.sigmoid(inputs)
@@ -328,16 +329,35 @@ class DiceLossMulticlass(nn.Module):
         inputs = inputs.view(inputs.shape[0],inputs.shape[1],-1)
         targets = targets.view(targets.shape[0],targets.shape[1],-1)
 
-        #intersection = (inputs * targets).sum()
-        intersection = (inputs * targets).sum(0).sum(1)
-        #dice = (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)
-        dice = (2.*intersection + smooth)/(inputs.sum(0).sum(1) + targets.sum(0).sum(1) + smooth)
 
-        if (weights is None) and (self.size_average==True):
-            weights = (targets == 1).sum(0).sum(1)
-            weights /= weights.sum() # so they sum up to 1
+        # get one number per each 2D image/mask pair
+        # .sum(2) : (BATCH, NUM_CLASSES, H * W) -> (BATCH, NUM_CLASSES)
+        intersection = (inputs * targets).sum(2)
+        dice_coef = (2.*intersection + smooth)/(inputs.sum(2) + targets.sum(2) + smooth)
+        dice_loss = 1 - dice_coef
 
-        if weights is not None:
-            return 1 - (dice*weights).mean()
+        # no reduction, give a class mDiceLoss for every element in BATCH
+        if reduction == 'none':
+            # .mean(1) : (BATCH, NUM_CLASSES) -> (BATCH, )
+            if weight is not None:
+                return (dice_loss * weight).mean(1)
+            else:
+                return dice_loss.mean(1)
+
+        # aggregate the loss for all elements in BATCH
         else:
-            return 1 - weights.mean()
+            elif reduction == 'mean':
+                # .mean(0): (BATCH, NUM_CLASSES) -> (NUM_CLASSES, )
+                dice_loss = dice_loss.mean(0)
+
+            elif reduction == 'sum':
+                # .sum(0): (BATCH, NUM_CLASSES) -> (NUM_CLASSES, )
+                dice_loss = dice_loss.sum(0)
+            else:
+                raise ValueError("reduction should be one of 'none', 'mean', 'sum'")
+
+            # (NUM_CLASSES, ) -> scalar
+            if weight is not None:
+                return (dice_loss*weight).mean()
+            else:
+                return dice_loss.mean()
