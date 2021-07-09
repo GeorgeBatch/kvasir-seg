@@ -1,6 +1,6 @@
 # 2020 MediaEval Medico Challenge: Polyp Segmentation
 
-This repository accompanies our (George Batchkala and Sharib Ali) working-notes paper ["Real-time polyp segmentation using U-Net with IoU loss"](https://www.eigen.no/MediaEval_20_paper_30.pdf) presented at [MediaEval 2020
+This repository accompanies our (George Batchkala and Sharib Ali) working-notes paper ["Real-time polyp segmentation using U-Net with IoU loss"](http://ceur-ws.org/Vol-2882/paper30.pdf) presented at [MediaEval 2020
 Multimedia Benchmark Workshop](https://eigen.no), which was held online on 14-15 December 2020. If you are interested in this work, we recommend you first getting familiar with the [overview paper](https://www.eigen.no/MediaEval_20_paper_1.pdf).
 
 To sum up:
