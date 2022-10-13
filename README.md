@@ -6,8 +6,6 @@ Multimedia Benchmark Workshop](https://eigen.no), which was held online on 14-15
 To sum up:
 * **Workshop:** [MediaEval 2020 Multimedia Benchmark Workshop](https://eigen.no)
 * **Working Notes:** ["Real-time polyp segmentation using U-Net with IoU loss"](http://ceur-ws.org/Vol-2882/paper30.pdf) by George Batchkala and Sharib Ali
-* **Joint Publication:** in progress
-
 
 ## About the challenge
 **Disclaimer:** next paragraph was directly copied from the official GitHub repository of the challenge: https://github.com/DebeshJha/2020-MediaEval-Medico-polyp-segmentation.
