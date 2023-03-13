@@ -17,7 +17,7 @@ def iou_pytorch_eval(outputs: torch.Tensor, labels: torch.Tensor):
     # You can comment out this line if you are passing tensors of equal shape
     # But if you are passing output from UNet or something it will most probably
     # be with the BATCH x 1 x H x W shape
-    outputs = outputs.squeeze(1).byte()  # BATCH x 1 x H x W => BATCH x H x W
+    outputs = outputs.squeeze(1).byte()  # (BATCH, 1, H, W) -> (BATCH, H, W)
     labels = labels.squeeze(1).byte()
 
 
@@ -29,7 +29,37 @@ def iou_pytorch_eval(outputs: torch.Tensor, labels: torch.Tensor):
     return iou.mean()
 
 # -----------------------------------------------------------------------------
-# to be used for validation for trainied models
+# to be used for validation/testing of trainied models
+
+def mean_iou_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
+    # intersection = tp
+    # union = tp + fp + fn
+    # iou = tp / (tp + fp + fn) = intersection / union
+
+    # BATCH x H x W, need because we process images sequentially in a for-loop
+    assert len(outputs.shape) == 3
+    assert len(labels.shape) == 3
+
+    # comment out if your model contains a sigmoid or equivalent activation layer
+    outputs = torch.sigmoid(outputs)
+    SMOOTH = 1e-8
+
+
+    # thresholding since that's how we will make predictions on new imputs (class 0)
+    outputs0 = outputs < 0.5
+    labels0 = labels < 0.5
+    intersection = (outputs0 & labels0).float().sum((1, 2))  # Will be zero if Truth=1 or Prediction=1
+    union = (outputs0 | labels0).float().sum((1, 2))         # Will be zero if both are 1
+    iou0 = (intersection + SMOOTH) / (union + SMOOTH)  # We smooth our devision to avoid 0/0
+
+    # thresholding since that's how we will make predictions on new imputs (class 1)
+    outputs1 = outputs > 0.5
+    labels1 = labels > 0.5
+    intersection = (outputs1 & labels1).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
+    union = (outputs1 | labels1).float().sum((1, 2))         # Will be zero if both are 0
+    iou1 = (intersection + SMOOTH) / (union + SMOOTH)  # We smooth our devision to avoid 0/0
+
+    return ((iou0 + iou1) / 2).mean()
 
 
 def iou_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
@@ -99,7 +129,7 @@ def precision_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
     SMOOTH = 1e-8
     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
     tpfp = (labels).float().sum((1, 2))                    # Will be zero if both are 0
-    precision = (intersection + SMOOTH) / (tpfp + SMOOTH)     # We smooth our devision to avoid 0/0
+    precision = (intersection + SMOOTH) / (tpfp + SMOOTH)  # We smooth our devision to avoid 0/0
 
     return precision.mean()
 
@@ -154,13 +184,13 @@ def fbeta_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor, beta:float):
 
     SMOOTH = 1e-8
     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
-    
+
     tpfn = (outputs).float().sum((1, 2))                   # Will be zero if both are 0
     recall = (intersection + SMOOTH) / (tpfn + SMOOTH)     # We smooth our devision to avoid 0/0
-    
+
     tpfp = (labels).float().sum((1, 2))                    # Will be zero if both are 0
-    precision = (intersection + SMOOTH) / (tpfp + SMOOTH)     # We smooth our devision to avoid 0/0
-    
+    precision = (intersection + SMOOTH) / (tpfp + SMOOTH)  # We smooth our devision to avoid 0/0
+
     f_beta = (1 + beta ** 2) * (precision * recall) / ((beta **2 * precision) + recall)
 
     return f_beta.mean()
@@ -188,8 +218,12 @@ def accuracy_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
 # -----------------------------------------------------------------------------
 # Credit to: https://www.kaggle.com/bigironsphere/loss-function-library-keras-pytorch
 
+
+# TODO: replace all `size_average` arguments with `reduction`, see PyTorch docs
+#       for any of the loss functions
+
 class IoULoss(nn.Module):
-    def __init__(self, weight=None, size_average=True):
+    def __init__(self):
         super(IoULoss, self).__init__()
 
     def forward(self, inputs, targets, smooth=1):
@@ -213,7 +247,7 @@ class IoULoss(nn.Module):
 
 
 class IoUBCELoss(nn.Module):
-    def __init__(self, weight=None, size_average=True):
+    def __init__(self):
         super(IoUBCELoss, self).__init__()
 
     def forward(self, inputs, targets, smooth=1):
@@ -233,7 +267,93 @@ class IoUBCELoss(nn.Module):
 
         IoU = - (intersection + smooth)/(union + smooth)
 
-        BCE = F.binary_cross_entropy(inputs, targets, reduction='mean')
+        # https://pytorch.org/docs/stable/nn.functional.html#binary-cross-entropy
+        BCE = F.binary_cross_entropy(input=inputs, target=targets, reduction='mean')
         IoU_BCE = BCE + IoU
 
         return IoU_BCE
+
+# -----------------------------------------------------------------------------
+
+class mIoULossBinary(nn.Module):
+    def __init__(self, weight=None):
+        super(mIoULoss, self).__init__()
+
+    def forward(self, inputs, targets, smooth=1):
+        # (BATCH, 1, H, W)
+        # we care about both classes represented as 0 and 1 on one the masks
+
+        if self.weight is not None:
+            assert self.weight.shape == (targets.shape[1], )
+        # make a copy not to change the default weight in the instance of DiceLossMulticlass
+        weight = self.weight.copy()
+
+        # invert what is target and what is not
+        # 0 -> (-1) * (0 - 1) = 1
+        # 1 -> (-1) * (1 - 1) = 0
+        targets_inv = (-1) * (targets - 1)
+
+        if weight is None:
+            mIoU = (IoULoss(inputs, targets_inv, smooth) + IoULoss(inputs, targets, smooth)) / 2
+        else:
+            mIoU = (weight[0] * IoULoss(inputs, targets_inv, smooth) + \
+                    weight[1] * IoULoss(inputs, targets, smooth)) / weight.sum()
+
+        return mIoU
+
+
+# credits for Multiclass implementation to Kenneth Rithvik (in comments)
+# https://www.kaggle.com/bigironsphere/loss-function-library-keras-pytorch/comments
+class DiceLossMulticlass(nn.Module):
+    def __init__(self, weight=None, reduction='mean'):
+        super(mIoULoss, self).__init__()
+
+    def forward(self, inputs, targets, smooth=1):
+        # inputs, targets of shapes (BATCH, NUM_CLASSES, H, W)
+
+        # check the size of the weight
+        if self.weight is not None:
+            assert self.weight.shape == (targets.shape[1], )
+        # make a copy not to change the default weight in the instance of DiceLossMulticlass
+        weight = self.weight.copy()
+
+        #comment out if your model contains a sigmoid or equivalent activation layer
+        inputs = F.sigmoid(inputs)
+
+        # flatten label and prediction images, leave BATCH and NUM_CLASSES
+        # (BATCH, NUM_CLASSES, H, W) -> (BATCH, NUM_CLASSES, H * W)
+        inputs = inputs.view(inputs.shape[0],inputs.shape[1],-1)
+        targets = targets.view(targets.shape[0],targets.shape[1],-1)
+
+
+        # get one number per each 2D image/mask pair
+        # .sum(2) : (BATCH, NUM_CLASSES, H * W) -> (BATCH, NUM_CLASSES)
+        intersection = (inputs * targets).sum(2)
+        dice_coef = (2.*intersection + smooth)/(inputs.sum(2) + targets.sum(2) + smooth)
+        dice_loss = 1 - dice_coef
+
+        # no reduction, give a class mDiceLoss for every element in BATCH
+        if reduction == 'none':
+            # .mean(1) : (BATCH, NUM_CLASSES) -> (BATCH, )
+            if weight is not None:
+                return (dice_loss * weight).mean(1)
+            else:
+                return dice_loss.mean(1)
+
+        # aggregate the loss for all elements in BATCH
+        else:
+            elif reduction == 'mean':
+                # .mean(0): (BATCH, NUM_CLASSES) -> (NUM_CLASSES, )
+                dice_loss = dice_loss.mean(0)
+
+            elif reduction == 'sum':
+                # .sum(0): (BATCH, NUM_CLASSES) -> (NUM_CLASSES, )
+                dice_loss = dice_loss.sum(0)
+            else:
+                raise ValueError("reduction should be one of 'none', 'mean', 'sum'")
+
+            # (NUM_CLASSES, ) -> scalar
+            if weight is not None:
+                return (dice_loss*weight).mean()
+            else:
+                return dice_loss.mean()
