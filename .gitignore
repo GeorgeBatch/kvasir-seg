@@ -21,3 +21,7 @@ predictions_val/
 # ignore google slides files and video from presentation
 *.gslides
 *.mp4
+
+# ingnore information about the joint publication
+Medico 2020 - joint publication.md
+Medico 2020 - joint publication.gdoc
