@@ -342,7 +342,7 @@ class DiceLossMulticlass(nn.Module):
 
         # aggregate the loss for all elements in BATCH
         else:
-            elif reduction == 'mean':
+            if reduction == 'mean':
                 # .mean(0): (BATCH, NUM_CLASSES) -> (NUM_CLASSES, )
                 dice_loss = dice_loss.mean(0)
 
