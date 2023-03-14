@@ -13,7 +13,7 @@ Download the datasets for training/validation and the competition test set (no l
 
 ```bash
 # unzip and move training/validation data
-kvasir-seg.zip
+unzip kvasir-seg.zip
 mv Kvasir-SEG/ train-val
 
 # unzip and move test data
