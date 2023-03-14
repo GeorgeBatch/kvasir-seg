@@ -1,6 +1,8 @@
 # Data
 
-Download the data and rename folders to `train-val` and `test` so it is easier to use.
+1. Download the data and rename folders;
+2. Unzip the data;
+2. Move into `train-val` and `test`.
 
 ## Directory Contents
 
