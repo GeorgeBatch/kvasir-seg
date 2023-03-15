@@ -1,5 +1,5 @@
 import os
-import imageio
+import imageio as iio
 
 import numpy as np
 import torch
@@ -31,8 +31,8 @@ class myDataSet(object):
         #     .jpeg has 3 channels, channels recorded last
         #     .jpeg records values as intensities from 0 to 255
         #     masks for some reason have values different to 0 or 255: 0, 1, 2, 3, 4, 5, 6, 7, 248, 249, 250, 251, 252, 253, 254, 255
-        img = imageio.imread(path_img) / 255
-        mask = imageio.imread(path_mask)[:, :, 0] / 255
+        img = iio.v3.imread(path_img) / 255
+        mask = iio.v3.imread(path_mask)[:, :, 0] / 255
         mask = mask.round() # binarize to 0 or 1 
         
         # note, resizing happens inside transforms
