@@ -18,6 +18,6 @@ test_transforms = transforms.Compose([
 
 
 if __name__ == "__main__":
-    for i, mode in enumerate(torchvision.transforms.InterpolationMode):
+    for i, mode in enumerate(transforms.InterpolationMode):
         print(i, mode)
     print("\nPreviously, `interpolation=0` was used. Now it was substituted by transforms.InterpolationMode.NEAREST - the one with index 0.")
