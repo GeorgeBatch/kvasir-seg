@@ -1,6 +1,6 @@
 import torchvision.transforms as transforms
 
-SIZE = 256
+SIZE = (256, 256)
 INTERPOLATION_MODE = transforms.InterpolationMode.NEAREST
 
 resize_transform = transforms.Resize(SIZE, interpolation=INTERPOLATION_MODE)
