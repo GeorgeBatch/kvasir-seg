@@ -277,7 +277,7 @@ class IoUBCELoss(nn.Module):
 
 class mIoULossBinary(nn.Module):
     def __init__(self, weight=None):
-        super(mIoULoss, self).__init__()
+        self.weight = weight
 
     def forward(self, inputs, targets, smooth=1):
         # (BATCH, 1, H, W)
@@ -306,7 +306,8 @@ class mIoULossBinary(nn.Module):
 # https://www.kaggle.com/bigironsphere/loss-function-library-keras-pytorch/comments
 class DiceLossMulticlass(nn.Module):
     def __init__(self, weight=None, reduction='mean'):
-        super(mIoULoss, self).__init__()
+        self.weight = weight
+        self.reduction = reduction
 
     def forward(self, inputs, targets, smooth=1):
         # inputs, targets of shapes (BATCH, NUM_CLASSES, H, W)
@@ -333,7 +334,7 @@ class DiceLossMulticlass(nn.Module):
         dice_loss = 1 - dice_coef
 
         # no reduction, give a class mDiceLoss for every element in BATCH
-        if reduction == 'none':
+        if self.reduction == 'none':
             # .mean(1) : (BATCH, NUM_CLASSES) -> (BATCH, )
             if weight is not None:
                 return (dice_loss * weight).mean(1)
@@ -342,11 +343,11 @@ class DiceLossMulticlass(nn.Module):
 
         # aggregate the loss for all elements in BATCH
         else:
-            if reduction == 'mean':
+            if self.reduction == 'mean':
                 # .mean(0): (BATCH, NUM_CLASSES) -> (NUM_CLASSES, )
                 dice_loss = dice_loss.mean(0)
 
-            elif reduction == 'sum':
+            elif self.reduction == 'sum':
                 # .sum(0): (BATCH, NUM_CLASSES) -> (NUM_CLASSES, )
                 dice_loss = dice_loss.sum(0)
             else:
