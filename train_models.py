@@ -134,15 +134,12 @@ def check_settings(original_settings):
 # main function
 # --------------------------------------------------------------------------------
 
-# tmux sessions 15, 16, 17, 18 on compg015
-# python train_models.py --gpu_index=0 --loss_function="IoULoss" --training_augmentation=0
-# python train_models.py --gpu_index=1 --loss_function="BCEWithLogitsLoss" --training_augmentation=0
-# python train_models.py --gpu_index=2 --loss_function="IoUBCELoss" --training_augmentation=0
-# python train_models.py --gpu_index=3 --loss_function="IoULoss" --training_augmentation=1
-
-# tmux sessions 19, 20 on compg015
-# python train_models.py --gpu_index=0 --loss_function="BCEWithLogitsLoss" --training_augmentation=1
-# python train_models.py --gpu_index=1 --loss_function="IoUBCELoss" --training_augmentation=1
+# python train_models.py --loss_function="IoULoss" --training_augmentation=0
+# python train_models.py --loss_function="BCEWithLogitsLoss" --training_augmentation=0
+# python train_models.py --loss_function="IoUBCELoss" --training_augmentation=0
+# python train_models.py --loss_function="IoULoss" --training_augmentation=1
+# python train_models.py --loss_function="BCEWithLogitsLoss" --training_augmentation=1
+# python train_models.py --loss_function="IoUBCELoss" --training_augmentation=1
 
 def main():
     parser = argparse.ArgumentParser(description='Train and validate a segmentation model on Kvasir-Seg dataset')
