@@ -44,7 +44,7 @@ For more Information consult next section (Information and Links).
     - Different architectures. Each in its own script.
 
 - notebooks:
-    - All working notebooks: EDA, experiments.
+    - All notebooks: EDA, validation results, testing predictions.
 
 - presentation:
     - Presentation slides for self-organized mini-conference at the Health Data Science CDT after completing the Deep Learning challenge.
