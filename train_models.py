@@ -6,6 +6,7 @@ import sys
 import copy
 import time
 import random
+import argparse
 
 # --------------------------------------------------------------------------------
 # standard imports
@@ -37,7 +38,7 @@ import ipdb
 
 # losses
 from utils.metrics import (
-    iou_pytorch_eval, IoULoss, IoUBCELoss
+    iou_pytorch_eval, IoULoss, IoUBCELoss, BCEWithLogitsLoss
 )
 from utils.metrics import (
     iou_pytorch_test, dice_pytorch_test, precision_pytorch_test, recall_pytorch_test, fbeta_pytorch_test, accuracy_pytorch_test
@@ -133,12 +134,39 @@ def check_settings(original_settings):
 # main function
 # --------------------------------------------------------------------------------
 
+# tmux sessions 15, 16, 17, 18 on compg015
+# python train_models.py --gpu_index=0 --loss_function="IoULoss" --training_augmentation=0
+# python train_models.py --gpu_index=1 --loss_function="BCEWithLogitsLoss" --training_augmentation=0
+# python train_models.py --gpu_index=2 --loss_function="IoUBCELoss" --training_augmentation=0
+# python train_models.py --gpu_index=3 --loss_function="IoULoss" --training_augmentation=1
+
 def main():
+    parser = argparse.ArgumentParser(description='Train and validate a segmentation model on Kvasir-Seg dataset')
+    parser.add_argument('--gpu_index', default=0, type=int, help='GPU ID [0|1|2|3]')
+    parser.add_argument('--num_cpu_workers_for_dataloader', default=4, type=int, help='Number of CPU workers for dataloader [0|1|2|3|4]')
+    parser.add_argument('--batch_size', default=20, type=int, help='Batch size')
+    parser.add_argument('--model_architecture', default='UNet', type=str, help='Model architecture [UNet|UNet_attention]')
+    parser.add_argument('--loss_function', default='IoULoss', type=str, help='Loss function [IoULoss|BCEWithLogitsLoss|IoUBCELoss]')
+    parser.add_argument('--training_augmentation', default=0, type=int, help='Whether to use training augmentation [1|0]')
+    
+    parser.add_argument('--num_epochs', default=100, type=int, help='Number of total training epochs [5|100]')
+    parser.add_argument('--patience', default=10, type=int, help='Number of patience training epochs [2|10]')
+    parser.add_argument('--lr', default=1e-4, type=float, help='Initial learning rate [0.0002]')
+    parser.add_argument('--weight_decay', default=5e-3, type=float, help='Weight decay [5e-3]')
+    args = parser.parse_args()
 
     SETTINGS = {
-        "gpu_index": 0, # leave as 0 if you do not have a GPU or only have 1 GPU
-        "num_cpu_workers_for_dataloader": 4,
-        "batch_size": 20,
+        "gpu_index": args.gpu_index,
+        "num_cpu_workers_for_dataloader": args.num_cpu_workers_for_dataloader,
+        "batch_size": args.batch_size,
+
+        "model_architecture": args.model_architecture, # UNet, UNet_attention
+        "loss_function": args.loss_function, # IoULoss, BCEWithLogitsLoss, IoUBCELoss
+        "training_augmentation": bool(args.training_augmentation), # True, False
+        "learning_rate": args.lr,
+        "weight_decay": args.weight_decay,
+        "num_epochs": args.num_epochs,
+        "patience": args.patience,
 
         "image_channels": 3,
         "mask_channels": 1,
@@ -146,17 +174,9 @@ def main():
         "masks_dir_path": "data/train-val/masks",
         "train_ids_txt": "train-val-split/train.txt",
         "valid_ids_txt": "train-val-split/val.txt",
-        
-        "model_architecture": "UNet", # "UNet_attention"
-        "training_augmentation": False,
-        "loss_function": "IoULoss", # IoULoss, BCEWithLogitsLoss, IoUBCELoss
-        "learning_rate": 1e-4,
-        "weight_decay": 1e-8,
-        "num_epochs": 5,
-        "patience": 2, # early stopping patience
-
-        "model_name": "UNet_IoULoss_baseline", # UNet_BCELoss_baseline, UNet_IoUBCELoss_baseline, UNet_BCEWithLogitsLoss_augmented, UNet_IoULoss_augmented, UNet_IoUBCELoss_augmented, UNet_BCEWithLogitsLoss_attention, UNet_IoULoss_attention, UNet_IoUBCELoss_attention
     }
+    postfix = "augmented" if SETTINGS["training_augmentation"] else "baseline"
+    SETTINGS["model_name"] = f"{SETTINGS['model_architecture']}_{SETTINGS['loss_function']}_{postfix}"
     check_settings(SETTINGS)
     
     # set seeds for reproducibility during training
@@ -169,9 +189,9 @@ def main():
 
     # make the device
     device_type_str = "cuda" if torch.cuda.is_available() else "cpu" # select device for training, i.e. gpu or cpu
-    print("device_type_str", device_type_str)
+    print("device_type_str:", device_type_str)
     device_str = f"{device_type_str}:{SETTINGS['gpu_index']}" if device_type_str == "cuda" else device_type_str
-    print("device_str", device_str)
+    print("     device_str:", device_str)
 
     # Model Architecture
     if SETTINGS["model_architecture"] == "UNet":
@@ -181,7 +201,7 @@ def main():
     else:
         raise NotImplementedError
     model = model.to(device_str) # load model to DEVICE
-    print(torchsummary.summary(model, (SETTINGS["image_channels"], SIZE[0], SIZE[1]), device=device_type_str))
+    #print(torchsummary.summary(model, (SETTINGS["image_channels"], SIZE[0], SIZE[1]), device=device_type_str))
     
     # Optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=SETTINGS["learning_rate"], weight_decay = SETTINGS["weight_decay"])
@@ -190,7 +210,7 @@ def main():
     if SETTINGS["loss_function"] == "IoULoss":
         criterion = IoULoss(reduction="sum")
     elif SETTINGS["loss_function"] == "BCEWithLogitsLoss":
-        criterion = nn.BCEWithLogitsLoss(reduction="sum")
+        criterion = BCEWithLogitsLoss(reduction="sum")
     elif SETTINGS["loss_function"] == "IoUBCELoss":
         criterion = IoUBCELoss(reduction="sum")
     else:
@@ -255,8 +275,8 @@ def main():
             state['iou'] = best_iou
             state['epoch'] = epoch
                 
-            if not os.path.isdir('checkpoint'):
-                os.mkdir('checkpoint')
+            if not os.path.isdir('checkpoints'):
+                os.mkdir('checkpoints')
             torch.save(state, f'checkpoints/{SETTINGS["model_name"]}.pth')
         
         elif best_epoch + SETTINGS['patience'] < epoch:
@@ -278,3 +298,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
