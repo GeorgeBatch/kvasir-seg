@@ -22,6 +22,17 @@ For more Information consult next section (Information and Links).
 
 ## Repository Contents
 
+- train_models.py:
+    - script to train the models. Use these commands to reproduce the weights (you might need to adjust the batch size if your GPU memory is different).
+    ```shell
+    python train_models.py --loss_function="IoULoss" --training_augmentation=0
+    python train_models.py --loss_function="BCEWithLogitsLoss" --training_augmentation=0
+    python train_models.py --loss_function="IoUBCELoss" --training_augmentation=0
+    python train_models.py --loss_function="IoULoss" --training_augmentation=1
+    python train_models.py --loss_function="BCEWithLogitsLoss" --training_augmentation=1
+    python train_models.py --loss_function="IoUBCELoss" --training_augmentation=1
+    ```
+
 - checkpoints:
     - Checkpoints for model weights, best epoch indexes, and validation IoU. More information and the link for download in the README.md inside the folder.
 
