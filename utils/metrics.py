@@ -253,29 +253,53 @@ class IoULoss(nn.Module):
         super(IoULoss, self).__init__()
         self.reduction = reduction
 
+    def leave_only_batch_and_flatten(self, inputs, targets):
+        inputs = inputs.view(inputs.shape[0], -1)
+        targets = targets.view(targets.shape[0], -1)
+        return inputs, targets
+
     def forward(self, inputs, targets, smooth=1):
         # inputs are logits, targets are labels in [0, 1]
 
-        #comment out if your model contains a sigmoid or equivalent activation layer
-        inputs = torch.sigmoid(inputs)
-
-        #flatten label and prediction tensors: (batch_size, 1, 256, 256) -> (batch_size, 256*256)
-        inputs = inputs.view(inputs.shape[0], -1)
-        targets = targets.view(targets.shape[0], -1)
+        # make inputs probabilities and flatten to (batch_size, 256*256)
+        inputs, targets = self.leave_only_batch_and_flatten(inputs, targets)
+        inputs_after_sigmoid = torch.sigmoid(inputs)
 
         # intersection is equivalent to True Positive count
         # union is the mutually inclusive area of all labels & predictions
-        intersection = (inputs * targets).sum(1)
-        total = (inputs + targets).sum(1)
+        intersection = (inputs_after_sigmoid * targets).sum(1)
+        total = (inputs_after_sigmoid + targets).sum(1)
         union = total - intersection
 
         IoU = (intersection + smooth)/(union + smooth)
         IoU_loss = - IoU
 
         return reduce_metric(IoU_loss, self.reduction)
+    
+
+class BCEWithLogitsLoss(nn.Module):
+    """
+    Assumes shape (B, C, H, W) where C == 1. If C > 1, then we flatten to (B, C*H*W)
+    """
+    def __init__(self, reduction='mean'):
+        super(BCEWithLogitsLoss, self).__init__()
+        self.reduction = reduction
+        self.BCEWithLogitsLoss = nn.BCEWithLogitsLoss(reduction='none') # will reduce everything together later
+
+    def leave_only_batch_and_flatten(self, inputs, targets):
+        # flatten label and prediction tensors: (batch_size, 1, 256, 256) -> (batch_size, 256*256)
+        inputs = inputs.view(inputs.shape[0], -1)
+        targets = targets.view(targets.shape[0], -1)
+        return inputs, targets
+
+    def forward(self, inputs, targets):
+        inputs, targets = self.leave_only_batch_and_flatten(inputs, targets)
+        BCE_loss = self.BCEWithLogitsLoss(inputs, targets)
+        BCE_loss = BCE_loss.mean(1) # mean over all pixels (IoU does this thing automatically): (BATCH, 1*H*W) -> (BATCH, 1)
+        return reduce_metric(BCE_loss, reduction=self.reduction)
 
 
-class IoUBCELoss(nn.Module):
+class IoUBCELoss(IoULoss):
     """
     Assumes shape (B, C, H, W) where C == 1. If C > 1, then we flatten to (B, C*H*W)
     """
@@ -283,13 +307,20 @@ class IoUBCELoss(nn.Module):
         super(IoUBCELoss, self).__init__()
         self.reduction = reduction
         self.IoULoss = IoULoss(reduction='none')  # will reduce everything together later
+        self.BCEWithLogitsLoss = nn.BCEWithLogitsLoss(reduction='none')
+
+    def leave_only_batch_and_flatten(self, inputs, targets):
+        return super(IoUBCELoss, self).leave_only_batch_and_flatten(inputs, targets)
 
     def forward(self, inputs, targets, smooth=1):
         # inputs are logits, targets are labels in [0, 1]
-
+        
         IoU_loss = self.IoULoss(inputs, targets, smooth=smooth)
         # https://pytorch.org/docs/stable/nn.functional.html#binary-cross-entropy
-        BCE_loss = F.binary_cross_entropy(input=inputs, target=targets, reduction='none') # will reduce everything together later
+
+        inputs, targets = self.leave_only_batch_and_flatten(inputs, targets)
+        BCE_loss = self.BCEWithLogitsLoss(inputs, targets)
+        BCE_loss = BCE_loss.mean(1) # mean over all pixels (IoU does this thing automatically): (BATCH, 1*H*W) -> (BATCH, 1)
         
         # non-reduced IoU_BCE = non-reduced BCE + non-reduced IoU
         IoU_BCE_loss = BCE_loss + IoU_loss
@@ -302,7 +333,7 @@ class mIoULossBinary(nn.Module):
     def __init__(self, weight=None, reduction='mean'):
         super(mIoULossBinary, self).__init__()
         self.weight = weight
-        self.IoULoss = IoULoss(reduction=reduction)
+        self.IoULoss = IoULoss(reduction='none')
 
     def forward(self, inputs, targets, smooth=1):
         # (BATCH, 1, H, W)
@@ -368,3 +399,4 @@ class DiceLossMulticlass(nn.Module):
             dice_loss = dice_loss * weight
 
         return reduce_metric(dice_loss, reduction=self.reduction)
+
