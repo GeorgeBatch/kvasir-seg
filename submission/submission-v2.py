@@ -110,7 +110,7 @@ class UNet(torch.nn.Module):
 # Instantiate the model and load weights
 
 model_name = 'UNet_IoULoss_augmented'
-chpt_file_name = "ckpt_" + model_name + ".pth"
+chpt_file_name = model_name + ".pth"
 
 # Instantiate the model
 model = UNet(channel_in=3, channel_out=1)
