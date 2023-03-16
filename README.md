@@ -60,3 +60,17 @@ For more Information consult next section (Information and Links).
 - utils:
     - metrics.py: loss and evaluation metrics
     - dataset.py: custom Dataset class to be used in torch DataLoaders
+
+## Environment
+
+These are merely for reference.
+
+```
+python=3.8.10
+torch=1.10.2 # this is PyTorch (I had it with cudatoolkit 10.2)
+torchvision=0.11.3
+imageio=2.26.0
+
+torchsummary=1.5.1
+torchmetrics=0.9.1
+```
