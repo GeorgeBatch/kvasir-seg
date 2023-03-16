@@ -61,8 +61,6 @@ def iou_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor, reduction='mea
     outputs = outputs > 0.5
     labels = labels > 0.5
 
-    ipdb.set_trace()
-
     SMOOTH = 1e-8
     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
     union = (outputs | labels).float().sum((1, 2))         # Will be zero if both are 0
@@ -86,8 +84,6 @@ def dice_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor, reduction='me
     # thresholding since that's how we will make predictions on new imputs
     outputs = outputs > 0.5
     labels = labels > 0.5
-
-    ipdb.set_trace()
 
     SMOOTH = 1e-8
     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
@@ -113,8 +109,6 @@ def precision_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor, reductio
     outputs = outputs > 0.5
     labels = labels > 0.5
 
-    ipdb.set_trace()
-
     SMOOTH = 1e-8
     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
     tpfp = (labels).float().sum((1, 2))                    # Will be zero if both are 0
@@ -138,8 +132,6 @@ def recall_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor, reduction='
     # thresholding since that's how we will make predictions on new imputs
     outputs = outputs > 0.5
     labels = labels > 0.5
-
-    ipdb.set_trace()
 
     SMOOTH = 1e-8
     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
@@ -172,8 +164,6 @@ def fbeta_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor, beta:float, 
     outputs = outputs > 0.5
     labels = labels > 0.5
 
-    ipdb.set_trace()
-
     SMOOTH = 1e-8
     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
 
@@ -201,8 +191,6 @@ def accuracy_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
     outputs = outputs > 0.5
     labels = labels > 0.5
 
-    ipdb.set_trace()
-
     acc = (outputs == labels).float().mean((1, 2))
 
     return reduce_metric(acc, reduction='mean')
@@ -220,8 +208,6 @@ def binary_both_classes_iou_pytorch_test(outputs: torch.Tensor, labels: torch.Te
     # comment out if your model contains a sigmoid or equivalent activation layer
     outputs = torch.sigmoid(outputs)
     SMOOTH = 1e-8
-
-    ipdb.set_trace()
 
     # thresholding since that's how we will make predictions on new imputs (class 0)
     outputs0 = outputs < 0.5
