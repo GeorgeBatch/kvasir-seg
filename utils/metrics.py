@@ -1,12 +1,27 @@
+import ipdb
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+def reduce_metric(metric, reduction='mean'):
+    """
+    If "sum" or "mean" Reduces a metric tensor in the 0th dimention (batch_size)
+    Otherwise returns the metric tensor as is.
+    """
+    if reduction == 'mean':
+        return metric.mean(0)
+    elif reduction == 'sum':
+        return metric.sum(0)
+    elif reduction == 'none':
+        return metric
+    else:
+        raise ValueError(f"Unknown reduction: {reduction}")
 
 # -----------------------------------------------------------------------------
 # to be used for validation during training
 
-def iou_pytorch_eval(outputs: torch.Tensor, labels: torch.Tensor):
+def iou_pytorch_eval(outputs: torch.Tensor, labels: torch.Tensor, reduction='mean'):
 
     # comment out if your model contains a sigmoid or equivalent activation layer
     outputs = torch.sigmoid(outputs)
@@ -20,49 +35,17 @@ def iou_pytorch_eval(outputs: torch.Tensor, labels: torch.Tensor):
     outputs = outputs.squeeze(1).byte()  # (BATCH, 1, H, W) -> (BATCH, H, W)
     labels = labels.squeeze(1).byte()
 
-
     SMOOTH = 1e-8
     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
     union = (outputs | labels).float().sum((1, 2))         # Will be zero if both are 0
     iou = (intersection + SMOOTH) / (union + SMOOTH)  # We smooth our devision to avoid 0/0
 
-    return iou.mean()
+    return reduce_metric(iou, reduction)
 
 # -----------------------------------------------------------------------------
 # to be used for validation/testing of trainied models
 
-def mean_iou_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
-    # intersection = tp
-    # union = tp + fp + fn
-    # iou = tp / (tp + fp + fn) = intersection / union
-
-    # BATCH x H x W, need because we process images sequentially in a for-loop
-    assert len(outputs.shape) == 3
-    assert len(labels.shape) == 3
-
-    # comment out if your model contains a sigmoid or equivalent activation layer
-    outputs = torch.sigmoid(outputs)
-    SMOOTH = 1e-8
-
-
-    # thresholding since that's how we will make predictions on new imputs (class 0)
-    outputs0 = outputs < 0.5
-    labels0 = labels < 0.5
-    intersection = (outputs0 & labels0).float().sum((1, 2))  # Will be zero if Truth=1 or Prediction=1
-    union = (outputs0 | labels0).float().sum((1, 2))         # Will be zero if both are 1
-    iou0 = (intersection + SMOOTH) / (union + SMOOTH)  # We smooth our devision to avoid 0/0
-
-    # thresholding since that's how we will make predictions on new imputs (class 1)
-    outputs1 = outputs > 0.5
-    labels1 = labels > 0.5
-    intersection = (outputs1 & labels1).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
-    union = (outputs1 | labels1).float().sum((1, 2))         # Will be zero if both are 0
-    iou1 = (intersection + SMOOTH) / (union + SMOOTH)  # We smooth our devision to avoid 0/0
-
-    return ((iou0 + iou1) / 2).mean()
-
-
-def iou_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
+def iou_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor, reduction='mean'):
     # intersection = tp
     # union = tp + fp + fn
     # iou = tp / (tp + fp + fn) = intersection / union
@@ -78,15 +61,17 @@ def iou_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
     outputs = outputs > 0.5
     labels = labels > 0.5
 
+    ipdb.set_trace()
+
     SMOOTH = 1e-8
     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
     union = (outputs | labels).float().sum((1, 2))         # Will be zero if both are 0
     iou = (intersection + SMOOTH) / (union + SMOOTH)  # We smooth our devision to avoid 0/0
 
-    return iou.mean()
+    return reduce_metric(iou, reduction)
 
 
-def dice_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
+def dice_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor, reduction='mean'):
     # intersection = tp
     # union = tp + fp + fn
     # dice = 2 * tp / (2 * tp + fp + fn) = 2*intersection / (intersection + union)
@@ -102,15 +87,17 @@ def dice_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
     outputs = outputs > 0.5
     labels = labels > 0.5
 
+    ipdb.set_trace()
+
     SMOOTH = 1e-8
     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
     union = (outputs | labels).float().sum((1, 2))         # Will be zero if both are 0
     dice = (2*intersection + SMOOTH) / (intersection + union + SMOOTH)  # We smooth our devision to avoid 0/0
 
-    return dice.mean()
+    return reduce_metric(dice, reduction)
 
 
-def precision_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
+def precision_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor, reduction='mean'):
     # intersection = tp
     # tpfp = tp + fp
     # precision = tp / (tp + fp) = intersection / tpfp
@@ -126,19 +113,20 @@ def precision_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
     outputs = outputs > 0.5
     labels = labels > 0.5
 
+    ipdb.set_trace()
+
     SMOOTH = 1e-8
     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
     tpfp = (labels).float().sum((1, 2))                    # Will be zero if both are 0
     precision = (intersection + SMOOTH) / (tpfp + SMOOTH)  # We smooth our devision to avoid 0/0
 
-    return precision.mean()
+    return reduce_metric(precision, reduction)
 
 
-def recall_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
+def recall_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor, reduction='mean'):
     # intersection = tp
     # tpfn = tp + fn
     # recall = tp / (tp + fn) = intersection / tpfn
-
 
     # BATCH x H x W
     assert len(outputs.shape) == 3
@@ -151,15 +139,17 @@ def recall_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
     outputs = outputs > 0.5
     labels = labels > 0.5
 
+    ipdb.set_trace()
+
     SMOOTH = 1e-8
     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
     tpfn = (outputs).float().sum((1, 2))                   # Will be zero if both are 0
     recall = (intersection + SMOOTH) / (tpfn + SMOOTH)     # We smooth our devision to avoid 0/0
 
-    return recall.mean()
+    return reduce_metric(recall, reduction)
 
 
-def fbeta_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor, beta:float):
+def fbeta_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor, beta:float, reduction='mean'):
     # intersection = tp
     #
     # tpfp = tp + fp
@@ -182,6 +172,8 @@ def fbeta_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor, beta:float):
     outputs = outputs > 0.5
     labels = labels > 0.5
 
+    ipdb.set_trace()
+
     SMOOTH = 1e-8
     intersection = (outputs & labels).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
 
@@ -193,7 +185,7 @@ def fbeta_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor, beta:float):
 
     f_beta = (1 + beta ** 2) * (precision * recall) / ((beta **2 * precision) + recall)
 
-    return f_beta.mean()
+    return reduce_metric(f_beta, reduction)
 
 
 def accuracy_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
@@ -209,75 +201,108 @@ def accuracy_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
     outputs = outputs > 0.5
     labels = labels > 0.5
 
+    ipdb.set_trace()
+
     acc = (outputs == labels).float().mean((1, 2))
 
-    return acc.mean()
+    return reduce_metric(acc, reduction='mean')
 
+# if we care about both classes
+def binary_both_classes_iou_pytorch_test(outputs: torch.Tensor, labels: torch.Tensor):
+    # intersection = tp
+    # union = tp + fp + fn
+    # iou = tp / (tp + fp + fn) = intersection / union
 
+    # BATCH x H x W, need because we process images sequentially in a for-loop
+    assert len(outputs.shape) == 3
+    assert len(labels.shape) == 3
+
+    # comment out if your model contains a sigmoid or equivalent activation layer
+    outputs = torch.sigmoid(outputs)
+    SMOOTH = 1e-8
+
+    ipdb.set_trace()
+
+    # thresholding since that's how we will make predictions on new imputs (class 0)
+    outputs0 = outputs < 0.5
+    labels0 = labels < 0.5
+    intersection = (outputs0 & labels0).float().sum((1, 2))  # Will be zero if Truth=1 or Prediction=1
+    union = (outputs0 | labels0).float().sum((1, 2))         # Will be zero if both are 1
+    iou0 = (intersection + SMOOTH) / (union + SMOOTH)  # We smooth our devision to avoid 0/0
+
+    # thresholding since that's how we will make predictions on new imputs (class 1)
+    outputs1 = outputs > 0.5
+    labels1 = labels > 0.5
+    intersection = (outputs1 & labels1).float().sum((1, 2))  # Will be zero if Truth=0 or Prediction=0
+    union = (outputs1 | labels1).float().sum((1, 2))         # Will be zero if both are 0
+    iou1 = (intersection + SMOOTH) / (union + SMOOTH)  # We smooth our devision to avoid 0/0
+
+    # average iou of both classes - can add unequal weights if we care more about one class
+    weighted_iou = (iou0 + iou1) / 2
+    return reduce_metric(weighted_iou, reduction='mean')
 
 # -----------------------------------------------------------------------------
 # Credit to: https://www.kaggle.com/bigironsphere/loss-function-library-keras-pytorch
 
-
-# TODO: replace all `size_average` arguments with `reduction`, see PyTorch docs
-#       for any of the loss functions
-
 class IoULoss(nn.Module):
-    def __init__(self):
+    """
+    Assumes shape (B, C, H, W) where C == 1. If C > 1, then we flatten to (B, C*H*W)
+    """
+
+    def __init__(self, reduction='mean'):
         super(IoULoss, self).__init__()
+        self.reduction = reduction
 
     def forward(self, inputs, targets, smooth=1):
+        # inputs are logits, targets are labels in [0, 1]
 
         #comment out if your model contains a sigmoid or equivalent activation layer
         inputs = torch.sigmoid(inputs)
 
-        #flatten label and prediction tensors
-        inputs = inputs.view(-1)
-        targets = targets.view(-1)
+        #flatten label and prediction tensors: (batch_size, 1, 256, 256) -> (batch_size, 256*256)
+        inputs = inputs.view(inputs.shape[0], -1)
+        targets = targets.view(targets.shape[0], -1)
 
-        #intersection is equivalent to True Positive count
-        #union is the mutually inclusive area of all labels & predictions
-        intersection = (inputs * targets).sum()
-        total = (inputs + targets).sum()
+        # intersection is equivalent to True Positive count
+        # union is the mutually inclusive area of all labels & predictions
+        intersection = (inputs * targets).sum(1)
+        total = (inputs + targets).sum(1)
         union = total - intersection
 
         IoU = (intersection + smooth)/(union + smooth)
+        IoU_loss = - IoU
 
-        return -IoU
+        return reduce_metric(IoU_loss, self.reduction)
 
 
 class IoUBCELoss(nn.Module):
-    def __init__(self):
+    """
+    Assumes shape (B, C, H, W) where C == 1. If C > 1, then we flatten to (B, C*H*W)
+    """
+    def __init__(self, reduction='mean'):
         super(IoUBCELoss, self).__init__()
+        self.reduction = reduction
+        self.IoULoss = IoULoss(reduction='none')  # will reduce everything together later
 
     def forward(self, inputs, targets, smooth=1):
+        # inputs are logits, targets are labels in [0, 1]
 
-        #comment out if your model contains a sigmoid or equivalent activation layer
-        inputs = torch.sigmoid(inputs)
-
-        #flatten label and prediction tensors
-        inputs = inputs.view(-1)
-        targets = targets.view(-1)
-
-        #intersection is equivalent to True Positive count
-        #union is the mutually inclusive area of all labels & predictions
-        intersection = (inputs * targets).sum()
-        total = (inputs + targets).sum()
-        union = total - intersection
-
-        IoU = - (intersection + smooth)/(union + smooth)
-
+        IoU_loss = self.IoULoss(inputs, targets, smooth=smooth)
         # https://pytorch.org/docs/stable/nn.functional.html#binary-cross-entropy
-        BCE = F.binary_cross_entropy(input=inputs, target=targets, reduction='mean')
-        IoU_BCE = BCE + IoU
+        BCE_loss = F.binary_cross_entropy(input=inputs, target=targets, reduction='none') # will reduce everything together later
+        
+        # non-reduced IoU_BCE = non-reduced BCE + non-reduced IoU
+        IoU_BCE_loss = BCE_loss + IoU_loss
 
-        return IoU_BCE
+        return reduce_metric(IoU_BCE_loss, reduction=self.reduction)
 
 # -----------------------------------------------------------------------------
 
 class mIoULossBinary(nn.Module):
-    def __init__(self, weight=None):
+    def __init__(self, weight=None, reduction='mean'):
+        super(mIoULossBinary, self).__init__()
         self.weight = weight
+        self.IoULoss = IoULoss(reduction=reduction)
 
     def forward(self, inputs, targets, smooth=1):
         # (BATCH, 1, H, W)
@@ -288,16 +313,20 @@ class mIoULossBinary(nn.Module):
         # make a copy not to change the default weight in the instance of DiceLossMulticlass
         weight = self.weight.copy()
 
+        ipdb.set_trace()
+
         # invert what is target and what is not
         # 0 -> (-1) * (0 - 1) = 1
         # 1 -> (-1) * (1 - 1) = 0
         targets_inv = (-1) * (targets - 1)
 
+        # rededuction is done at the stage of IoULoss
         if weight is None:
-            mIoU = (IoULoss(inputs, targets_inv, smooth) + IoULoss(inputs, targets, smooth)) / 2
+            mIoU = (self.IoULoss(inputs, targets_inv, smooth) + \
+                    self.IoULoss(inputs, targets, smooth)) / 2
         else:
-            mIoU = (weight[0] * IoULoss(inputs, targets_inv, smooth) + \
-                    weight[1] * IoULoss(inputs, targets, smooth)) / weight.sum()
+            mIoU = (weight[0] * self.IoULoss(inputs, targets_inv, smooth) + \
+                    weight[1] * self.IoULoss(inputs, targets, smooth)) / weight.sum()
 
         return mIoU
 
@@ -306,6 +335,7 @@ class mIoULossBinary(nn.Module):
 # https://www.kaggle.com/bigironsphere/loss-function-library-keras-pytorch/comments
 class DiceLossMulticlass(nn.Module):
     def __init__(self, weight=None, reduction='mean'):
+        super(DiceLossMulticlass, self).__init__()
         self.weight = weight
         self.reduction = reduction
 
@@ -326,6 +356,7 @@ class DiceLossMulticlass(nn.Module):
         inputs = inputs.view(inputs.shape[0],inputs.shape[1],-1)
         targets = targets.view(targets.shape[0],targets.shape[1],-1)
 
+        ipdb.set_trace()
 
         # get one number per each 2D image/mask pair
         # .sum(2) : (BATCH, NUM_CLASSES, H * W) -> (BATCH, NUM_CLASSES)
@@ -333,28 +364,7 @@ class DiceLossMulticlass(nn.Module):
         dice_coef = (2.*intersection + smooth)/(inputs.sum(2) + targets.sum(2) + smooth)
         dice_loss = 1 - dice_coef
 
-        # no reduction, give a class mDiceLoss for every element in BATCH
-        if self.reduction == 'none':
-            # .mean(1) : (BATCH, NUM_CLASSES) -> (BATCH, )
-            if weight is not None:
-                return (dice_loss * weight).mean(1)
-            else:
-                return dice_loss.mean(1)
+        if weight is not None:
+            dice_loss = dice_loss * weight
 
-        # aggregate the loss for all elements in BATCH
-        else:
-            if self.reduction == 'mean':
-                # .mean(0): (BATCH, NUM_CLASSES) -> (NUM_CLASSES, )
-                dice_loss = dice_loss.mean(0)
-
-            elif self.reduction == 'sum':
-                # .sum(0): (BATCH, NUM_CLASSES) -> (NUM_CLASSES, )
-                dice_loss = dice_loss.sum(0)
-            else:
-                raise ValueError("reduction should be one of 'none', 'mean', 'sum'")
-
-            # (NUM_CLASSES, ) -> scalar
-            if weight is not None:
-                return (dice_loss*weight).mean()
-            else:
-                return dice_loss.mean()
+        return reduce_metric(dice_loss, reduction=self.reduction)
