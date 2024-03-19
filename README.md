@@ -4,7 +4,7 @@ This repository accompanies our (George Batchkala and Sharib Ali) working-notes 
 Multimedia Benchmark Workshop](https://multimediaeval.github.io/editions/2020/), which was held online on 14-15 December 2020. If you are interested in this work, we recommend you first getting familiar with the [overview paper](http://ceur-ws.org/Vol-2882/paper1.pdf).
 
 To sum up:
-* **Workshop:** [MediaEval 2020 Multimedia Benchmark Workshop](https://eigen.no)
+* **Workshop:** [MediaEval 2020 Multimedia Benchmark Workshop](https://multimediaeval.github.io/editions/2020/)
 * **Working Notes:** ["Real-time polyp segmentation using U-Net with IoU loss"](http://ceur-ws.org/Vol-2882/paper30.pdf) by George Batchkala and Sharib Ali
 
 ## About the challenge
